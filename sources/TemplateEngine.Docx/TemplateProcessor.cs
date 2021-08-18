@@ -14,7 +14,8 @@ namespace TemplateEngine.Docx
     {
 	    private readonly WordDocumentContainer _wordDocument;
 	    private bool _isNeedToRemoveContentControls;
-	    private bool _isNeedToNoticeAboutErrors;
+	    private bool _isNeedToThrowWhenErrorsOccur;
+        private bool _isNeedToNoticeAboutErrors;
 
 	    public XDocument Document { get { return _wordDocument.MainDocumentPart; } }
 
@@ -95,7 +96,13 @@ namespace TemplateEngine.Docx
 		    return this;
 	    }
 
-		public TemplateProcessor FillContent(Content content)
+        public TemplateProcessor SetThrowWhenErrorsOccur(bool isNeedToThrow)
+        {
+            _isNeedToThrowWhenErrorsOccur = isNeedToThrow;
+            return this;
+        }
+
+        public TemplateProcessor FillContent(Content content)
 		{
 			var processor = new ContentProcessor(
 				new ProcessContext(_wordDocument))
@@ -132,6 +139,10 @@ namespace TemplateEngine.Docx
 			if (_isNeedToNoticeAboutErrors)
 				AddErrors(processResult.Errors);
 
+            if (_isNeedToThrowWhenErrorsOccur)
+                ThrowErrors(processResult.Errors);
+
+
             return this;
         }
 		
@@ -162,6 +173,12 @@ namespace TemplateEngine.Docx
 								    new XElement(W.highlight,
 									    new XAttribute(W.val, "yellow"))),
 							    new XElement(W.t, s.Message)))));
+	    }
+
+	    private void ThrowErrors(IList<IError> errors)
+	    {
+		    if (errors.Any())
+			    throw new TemplateProcessException(errors);
 	    }
 
 	    public void Dispose()
